@@ -2,3 +2,5 @@
 __pycache__/
 *.py[cod]
 *$py.class
+result_json/
+visualization_output/
