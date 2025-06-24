@@ -295,6 +295,7 @@ class DocumentProcessor:
         
         # Process each page
         pages_with_layouts = []
+        pages_without_detection = []  # New: track pages without detection
         
         for page_num, page in enumerate(data):
             self.stats.total_pages += 1
@@ -305,17 +306,28 @@ class DocumentProcessor:
                 self.stats.total_layouts += len(layout_peek)
                 pages_with_layouts.append((page, layout_peek))
                 print(f"File: {json_file.name}, Page: {page['index']}, Detected Layouts: {layout_peek}")
+            else:
+                # New: collect pages without detection but with valid layouts
+                if page.get('page') and len(page['page']) > 0:
+                    pages_without_detection.append((page, []))
+                    print(f"File: {json_file.name}, Page: {page['index']}, No enhanced detection but has layouts")
         
-        # Generate visualizations
-        self._generate_visualizations(pages_with_layouts, json_file, year_output_dir, mode)
+        # Generate visualizations for detected layouts
+        if pages_with_layouts:
+            self._generate_visualizations(pages_with_layouts, json_file, year_output_dir, mode, detected=True)
+        
+        # New: Generate visualizations for non-detected but valid pages (only in batch mode)
+        if pages_without_detection and mode == 2:
+            self._generate_visualizations(pages_without_detection, json_file, year_output_dir, mode, detected=False)
     
     def _generate_visualizations(self, pages_with_layouts: List[Tuple[Dict[str, Any], List[int]]], 
-                               json_file: Path, year_output_dir: Path, mode: int) -> None:
+                               json_file: Path, year_output_dir: Path, mode: int, detected: bool = True) -> None:
         """Generate visualizations for pages with detected layouts."""
         for page, layout_peek in pages_with_layouts:
             # Generate filename for saving
             base_filename = json_file.stem
-            save_path = year_output_dir / f"{base_filename}_page{page['index']}.png"
+            detection_suffix = "_detected" if detected else "_not_detected"
+            save_path = year_output_dir / f"{base_filename}_page{page['index']}{detection_suffix}.png"
             
             # Visualize all layouts and their text boxes in one figure
             fig = self.visualizer.visualize_page_layouts(page, layout_peek)
@@ -332,7 +344,8 @@ class DocumentProcessor:
             if mode == 2 or mode == 3:  # Batch or Combined mode
                 # Save figure to file
                 fig.savefig(save_path, dpi=150, bbox_inches='tight')
-                print(f"Saved visualization to {save_path}")
+                detection_type = "detected" if detected else "not detected"
+                print(f"Saved {detection_type} visualization to {save_path}")
             
             if mode != 1:  # Close figure if not in interactive mode
                 plt.close(fig)
@@ -349,7 +362,7 @@ class DocumentProcessor:
         """Get visualization mode from user input."""
         print("\nVisualization Options:")
         print("1. Interactive mode (show one window at a time, press close to continue)")
-        print("2. Batch mode (save all visualizations as PNG files)")
+        print("2. Batch mode (save all visualizations as PNG files - includes detected and not detected)")
         print("3. Combined mode (show visualizations and save as PNG files)")
         
         try:
