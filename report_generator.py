@@ -54,7 +54,7 @@ class ReportGenerator:
                     })
 
                 # --- Test 2: Détection de ligne horizontale ---
-                if self.row_detector.detect_horizontal_layouts(page_data):
+                if self.row_detector.detect_multi_layout_rows_on_page(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,

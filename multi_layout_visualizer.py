@@ -1,33 +1,33 @@
-import os
+# multi_layout_visualizer.py
+
 import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import numpy as np
-from typing import Dict, List, Tuple, Any, Optional
-from dataclasses import dataclass
 from pathlib import Path
-from row_detector import RowDetector # Importation du nouveau détecteur
+from typing import Dict, Any, Optional, Tuple
+from dataclasses import dataclass
+
+# Importation du nouveau détecteur avec la nouvelle logique
+from row_detector import RowDetector
 
 @dataclass
 class VisualizationConfig:
     figsize: Tuple[int, int] = (20, 25)
-    layout_line_width_detected: float = 3.0
-    layout_line_width_regular: float = 1.0
+    layout_line_width: float = 2.0
     padding: int = 50
 
 @dataclass
 class ColorScheme:
-    regular_layout: str = 'blue'
-    # Nouvelle couleur pour les layouts détectés
-    horizontal_layout: str = 'orange' 
-    text_box_alpha: float = 0.7
+    detected_layout: str = 'orange' 
+    text_box_alpha: float = 0.8
 
 class PageVisualizer:
     def __init__(self, config: Optional[VisualizationConfig] = None, color_scheme: Optional[ColorScheme] = None):
         self.config = config or VisualizationConfig()
         self.colors = color_scheme or ColorScheme()
 
-    def visualize_page(self, page_data: Dict[str, Any], detected_indices: List[int]) -> plt.Figure:
+    # La méthode est simplifiée : elle ne visualise qu'une page DÉTECTÉE
+    def visualize_detected_page(self, page_data: Dict[str, Any]) -> plt.Figure:
         fig, ax = plt.subplots(figsize=self.config.figsize)
         
         all_bboxes = [layout['bbox_layout'] for layout in page_data['page']]
@@ -36,42 +36,36 @@ class PageVisualizer:
         
         ax.set_xlim(min(x_coords) - self.config.padding, max(x_coords) + self.config.padding)
         ax.set_ylim(max(y_coords) + self.config.padding, min(y_coords) - self.config.padding)
-        ax.set_title(f"Page {page_data['index']} - Horizontal Layout Detection", fontsize=16)
+        ax.set_title(f"Page {page_data['index']} - Horizontal Layout Case Detected", fontsize=16)
 
+        # Puisque cette méthode n'est appelée que pour les pages détectées, tous les layouts sont colorés
         for idx, layout_data in enumerate(page_data['page']):
             bbox = layout_data['bbox_layout']
-            width = bbox[2] - bbox[0]
-            height = bbox[3] - bbox[1]
-            
-            is_detected = idx in detected_indices
-            
-            edge_color = self.colors.horizontal_layout if is_detected else self.colors.regular_layout
-            line_width = self.config.layout_line_width_detected if is_detected else self.config.layout_line_width_regular
+            width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
             
             rect = patches.Rectangle(
                 (bbox[0], bbox[1]), width, height,
-                linewidth=line_width,
-                edgecolor=edge_color,
+                linewidth=self.config.layout_line_width,
+                edgecolor=self.colors.detected_layout,
                 facecolor='none',
                 alpha=self.colors.text_box_alpha
             )
             ax.add_patch(rect)
-            ax.text(bbox[0], bbox[1] - 5, f"Layout {idx}", fontsize=8, color=edge_color)
+            ax.text(bbox[0], bbox[1] - 5, f"Layout {idx}", fontsize=8, color=self.colors.detected_layout)
 
         ax.grid(True, linestyle='--')
         legend_elements = [
-            patches.Patch(edgecolor=self.colors.horizontal_layout, facecolor='none', label='Detected Horizontal Layout'),
-            patches.Patch(edgecolor=self.colors.regular_layout, facecolor='none', label='Regular Layout')
+            patches.Patch(edgecolor=self.colors.detected_layout, facecolor='none', label='Detected Page'),
         ]
         ax.legend(handles=legend_elements, loc='upper right')
         
         return fig
 
 class DocumentProcessor:
-    def __init__(self, base_dir: str = "result_json", output_dir: str = "horizontal_output"):
+    def __init__(self, base_dir: str = "result_json", output_dir: str = "horizontal_output_scanline"):
         self.base_dir = Path(base_dir)
         self.output_dir = Path(output_dir)
-        self.row_detector = RowDetector(min_layouts_in_row=3)
+        self.row_detector = RowDetector() # Utilise la nouvelle version
         self.visualizer = PageVisualizer()
 
     def process_documents(self):
@@ -80,38 +74,30 @@ class DocumentProcessor:
             return
         
         self.output_dir.mkdir(exist_ok=True)
+        print("Début du traitement avec l'algorithme de balayage...")
         
-        print("Début du traitement...")
-        for year_dir in sorted(self.base_dir.iterdir()):
-            try:
-                # Traite uniquement les dossiers dont le nom est une année entre 1962 et 2025
-                year = int(year_dir.name)
-                if year_dir.is_dir() and 1962 <= year <= 2025:
-                    print(f"--- Traitement de l'année : {year} ---")
-                    self._process_year(year_dir)
-            except ValueError:
-                # Ignore les dossiers qui ne sont pas des années
-                continue
-        print("Traitement terminé.")
-
-    def _process_year(self, year_dir: Path):
-        year_output_dir = self.output_dir / year_dir.name
-        year_output_dir.mkdir(exist_ok=True)
-        
-        for json_file in sorted(year_dir.glob("*.json")):
+        for json_file in sorted(self.base_dir.rglob("*.json")):
             with open(json_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
             for page_data in data:
-                detected_indices = self.row_detector.detect_horizontal_layouts(page_data)
+                # La fonction de détection retourne maintenant un simple booléen
+                is_complex_page = self.row_detector.detect_multi_layout_rows_on_page(page_data)
                 
-                if detected_indices:
-                    print(f"  Détection sur {json_file.name}, Page {page_data['index']}. Layouts: {detected_indices}")
+                if is_complex_page:
+                    print(f"  Détection sur {json_file.name}, Page {page_data['index']}.")
                     
-                    fig = self.visualizer.visualize_page(page_data, detected_indices)
-                    save_path = year_output_dir / f"{json_file.stem}_page{page_data['index']}_detected.png"
+                    # La méthode de visualisation n'a plus besoin des indices
+                    fig = self.visualizer.visualize_detected_page(page_data)
+                    
+                    year_dir = self.output_dir / json_file.parent.name
+                    year_dir.mkdir(exist_ok=True)
+                    save_path = year_dir / f"{json_file.stem}_page{page_data['index']}_detected.png"
+                    
                     fig.savefig(save_path, dpi=150, bbox_inches='tight')
                     plt.close(fig)
+
+        print("Traitement terminé.")
 
 if __name__ == "__main__":
     processor = DocumentProcessor()
