@@ -1,5 +1,3 @@
-# row_detector.py (Version Corrigée)
-
 from typing import Dict, List, Any
 from itertools import combinations
 from dataclasses import dataclass

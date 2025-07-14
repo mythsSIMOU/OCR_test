@@ -302,7 +302,6 @@ class LayoutAnalyzer:
             
             # Original condition for large layouts
             large_layout_condition = (
-                layout.label == 'Text' and
                 layout.width > self.large_layout_width and 
                 layout.height > self.large_layout_height
             )
@@ -311,7 +310,7 @@ class LayoutAnalyzer:
             if large_layout_condition:
                 layout_indices.append(i)
             # Also check for two-column layouts
-            elif (layout.label == 'Text' and 
+            elif (
                   layout.bbox_text and 
                   layout.width > self.min_layout_width and
                   layout.height > self.min_layout_height):
