@@ -80,12 +80,21 @@ class ColumnDetector:
             text=layout.get('text')
         )
         
-        text_boxes = layout_obj.text_boxes
+        all_text_boxes = layout_obj.text_boxes
+        layout_width = layout_obj.width
+
+        if layout_width == 0: return False # Éviter la division par zéro
         
-        if len(text_boxes) < self.min_text_boxes_init:
+        selected_text_boxes = [
+            box for box in all_text_boxes 
+            if (box.width / layout_width) >= 0.15
+        ]
+        
+        # Le seuil du nombre de boîtes est maintenant appliqué aux boîtes sélectionnées.
+        if len(selected_text_boxes) < self.min_text_boxes_init:
             return False
         
-        x_midpoints = [box.midpoint_x for box in text_boxes]
+        x_midpoints = [box.midpoint_x for box in selected_text_boxes]
         
         # The only algorithm now being called is the density based one.
         return self._is_two_column_by_density(x_midpoints, layout_obj.width)
@@ -95,7 +104,6 @@ class ColumnDetector:
         Detect two-column structure by analyzing the density distribution of text box midpoints.
         This version includes checks to avoid false positives on signatures or narrow content.
         """
-        # --- RÈGLE 1: Seuil minimum de boîtes de texte ---
         # Ne pas exécuter la détection si le nombre de boîtes est inférieur à 8.
         if len(x_midpoints) < 8:
             return False
@@ -109,7 +117,6 @@ class ColumnDetector:
         if (text_spread / layout_width) < 0.6:
             return False
 
-        # --- Le reste de l'algorithme de densité original ---
         try:
             x_range = np.linspace(min(x_midpoints), max(x_midpoints), 100)
             try:
@@ -125,11 +132,11 @@ class ColumnDetector:
                     min_density_in_middle = np.min(middle_density)
                     max_density = 1.0 # Since it's normalized
                     
-                    if min_density_in_middle < 0.4 * max_density:
+                    if min_density_in_middle < 0.4:
                         left_peak = np.max(density[:middle_region_start])
                         right_peak = np.max(density[middle_region_end:])
                         
-                        if left_peak > 0.6 * max_density and right_peak > 0.6 * max_density:
+                        if left_peak > 0.6  and right_peak > 0.6 :
                             return True
             except Exception:
                 return False
@@ -167,14 +174,14 @@ class LayoutAnalyzer:
             )
             
             large_layout_condition = (
-                layout.label == 'Text' and
+                
                 layout.width > self.large_layout_width and 
                 layout.height > self.large_layout_height
             )
             
             if large_layout_condition:
                 layout_indices.append(i)
-            elif (layout.label == 'Text' and 
+            elif (
                   layout.bbox_text and 
                   layout.width > self.min_layout_width and
                   layout.height > self.min_layout_height):
