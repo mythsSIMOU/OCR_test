@@ -3,10 +3,10 @@
 from typing import Dict, List, Tuple, Any
 from itertools import permutations
 
-class NestedDetector:
+class NestedLayoutsDetector:
     """Détecte les layouts strictement imbriqués les uns dans les autres."""
 
-    def detect_nested_layouts(self, page_data: Dict[str, Any]) -> List[Tuple[int, int]]:
+    def detect(self, page_data: Dict[str, Any]) -> List[Tuple[int, int]]:
         """
         Trouve les paires de layouts (extérieur, intérieur) sur une page.
 

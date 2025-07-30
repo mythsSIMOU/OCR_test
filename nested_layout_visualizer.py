@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
-from nested_detector import NestedDetector
+from nested_detector import NestedLayoutsDetector
 
 class PageVisualizer:
     """Gère la création des visualisations pour les layouts imbriqués."""
@@ -71,7 +71,7 @@ class DocumentProcessor:
     def __init__(self, base_dir: str = "result_json", output_dir: str = "nested_output"):
         self.base_dir = Path(base_dir)
         self.output_dir = Path(output_dir)
-        self.detector = NestedDetector()
+        self.detector = NestedLayoutsDetector()
         self.visualizer = PageVisualizer()
 
     def process_documents(self):
@@ -87,7 +87,7 @@ class DocumentProcessor:
                 data = json.load(f)
             
             for page_data in data:
-                nested_pairs = self.detector.detect_nested_layouts(page_data)
+                nested_pairs = self.detector.detect(page_data)
                 
                 if nested_pairs:
                     print(f"  Détection dans {json_file.name}, Page {page_data['index']}: {len(nested_pairs)} paire(s) trouvée(s).")

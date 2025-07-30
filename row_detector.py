@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Any
 
-class RowDetector:
+class ThreeColumnsMajorityDetector:
     """Détecte les pages contenant des alignements horizontaux de plusieurs layouts."""
     
     def __init__(self, min_layouts_in_row: int = 3, scan_step: int = 15, threshold_percentage: float = 50.0):
@@ -13,7 +13,7 @@ class RowDetector:
         self.scan_step = scan_step
         self.threshold_percentage = threshold_percentage
 
-    def detect_multi_layout_rows_on_page(self, page_data: Dict[str, Any]) -> bool:
+    def detect(self, page_data: Dict[str, Any]) -> bool:
         """
         Détecte si une page contient suffisamment de lignes avec 3+ layouts.
         """

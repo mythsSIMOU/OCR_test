@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 # Importation du nouveau détecteur avec la nouvelle logique
-from row_detector import RowDetector
+from row_detector import ThreeColumnsMajorityDetector
 
 @dataclass
 class VisualizationConfig:
@@ -65,7 +65,7 @@ class DocumentProcessor:
     def __init__(self, base_dir: str = "result_json", output_dir: str = "horizontal_output_scanline"):
         self.base_dir = Path(base_dir)
         self.output_dir = Path(output_dir)
-        self.row_detector = RowDetector() # Utilise la nouvelle version
+        self.row_detector = ThreeColumnsMajorityDetector() # Utilise la nouvelle version
         self.visualizer = PageVisualizer()
 
     def process_documents(self):
@@ -82,7 +82,7 @@ class DocumentProcessor:
             
             for page_data in data:
                 # La fonction de détection retourne maintenant un simple booléen
-                is_complex_page = self.row_detector.detect_multi_layout_rows_on_page(page_data)
+                is_complex_page = self.row_detector.detect(page_data)
                 
                 if is_complex_page:
                     print(f"  Détection sur {json_file.name}, Page {page_data['index']}.")

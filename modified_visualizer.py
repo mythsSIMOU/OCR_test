@@ -6,7 +6,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
-from column_detector import LayoutAnalyzer, ColumnDetector, Layout, TextBox
+from column_detector import TwoColumnsPageDetectorDensity, TwoColumnsLayoutDetectorDensityBased, Layout, TextBox
 
 @dataclass
 class VisualizationConfig:
@@ -40,7 +40,7 @@ class PageVisualizer:
                  color_scheme: Optional[ColorScheme] = None):
         self.config = config or VisualizationConfig()
         self.colors = color_scheme or ColorScheme()
-        self.column_detector = ColumnDetector()
+        self.column_detector = TwoColumnsLayoutDetectorDensityBased()
         
     def visualize_page_layouts(self, page_data: Dict[str, Any], 
                              enhanced_layouts: List[int]) -> plt.Figure:
@@ -245,7 +245,7 @@ class DocumentProcessor:
     def __init__(self, base_dir: str = "result_json", output_dir: str = "visualization_output"):
         self.base_dir = Path(base_dir)
         self.output_dir = Path(output_dir)
-        self.layout_analyzer = LayoutAnalyzer()
+        self.layout_analyzer = TwoColumnsPageDetectorDensity()
         self.visualizer = PageVisualizer()
         self.stats = ProcessingStats()
     
@@ -300,7 +300,7 @@ class DocumentProcessor:
         for page_num, page in enumerate(data):
             self.stats.total_pages += 1
             # Use enhanced layout detection algorithm
-            layout_peek = self.layout_analyzer.enhanced_layout_peek(page)
+            layout_peek = self.layout_analyzer.detect(page)
             
             if layout_peek:
                 self.stats.total_layouts += len(layout_peek)

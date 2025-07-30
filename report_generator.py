@@ -5,9 +5,9 @@ import csv
 from pathlib import Path
 
 # Importation de toutes les classes de détection nécessaires
-from column_detector import LayoutAnalyzer  # On utilise l'analyseur de haut niveau pour les colonnes
-from row_detector import RowDetector
-from nested_detector import NestedDetector
+from column_detector import TwoColumnsPageDetectorDensity  # On utilise l'analyseur de haut niveau pour les colonnes
+from row_detector import ThreeColumnsMajorityDetector
+from nested_detector import NestedLayoutsDetector
 
 class ReportGenerator:
     """
@@ -17,10 +17,10 @@ class ReportGenerator:
         self.base_dir = Path(base_dir)
         self.output_file = Path(output_file)
         
-        # Initialisation des trois détecteurs
-        self.column_analyzer = LayoutAnalyzer()
-        self.row_detector = RowDetector()
-        self.nested_detector = NestedDetector()
+        # Init all detectors
+        self.two_columns_density_detector = TwoColumnsPageDetectorDensity()
+        self.three_columns_detector = ThreeColumnsMajorityDetector()
+        self.nested_detector = NestedLayoutsDetector()
         
         # Liste pour stocker tous les résultats
         self.all_detections = []
@@ -46,7 +46,7 @@ class ReportGenerator:
                 document_name = json_file.name
                 
                 # --- Test 1: Détection de deux colonnes ---
-                if self.column_analyzer.enhanced_layout_peek(page_data):
+                if self.two_columns_density_detector.detect(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,
@@ -54,7 +54,7 @@ class ReportGenerator:
                     })
 
                 # --- Test 2: Détection de ligne horizontale ---
-                if self.row_detector.detect_multi_layout_rows_on_page(page_data):
+                if self.three_columns_detector.detect(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,
@@ -62,7 +62,7 @@ class ReportGenerator:
                     })
                 
                 # --- Test 3: Détection de layouts imbriqués ---
-                if self.nested_detector.detect_nested_layouts(page_data):
+                if self.nested_detector.detect(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,

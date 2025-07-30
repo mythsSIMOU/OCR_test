@@ -57,7 +57,7 @@ class Layout:
             text_boxes.append(TextBox(*bbox, text_content))
         return text_boxes
 
-class ColumnDetector:
+class TwoColumnsLayoutDetectorDensityBased:
     """Class for detecting two-column layouts in document pages."""
     
     def __init__(self, min_text_boxes: int = 8, min_width: int = 600, min_height: int = 500):
@@ -145,7 +145,7 @@ class ColumnDetector:
         except Exception:
             return False
 
-class LayoutAnalyzer:
+class TwoColumnsPageDetectorDensity:
     """Class for analyzing page layouts and detecting enhanced layouts."""
     
     def __init__(self, 
@@ -157,9 +157,9 @@ class LayoutAnalyzer:
         self.large_layout_height = large_layout_height
         self.min_layout_width = min_layout_width
         self.min_layout_height = min_layout_height
-        self.column_detector = ColumnDetector()
+        self.column_detector = TwoColumnsLayoutDetectorDensityBased()
     
-    def enhanced_layout_peek(self, page: Dict[str, Any]) -> List[int]:
+    def detect(self, page: Dict[str, Any]) -> List[int]:
         """
         Enhanced function to detect layouts that might contain two-column structures.
         """
@@ -194,10 +194,10 @@ class LayoutAnalyzer:
 # Legacy functions for backward compatibility
 def detect_two_column_layout(layout: Dict[str, Any]) -> bool:
     """Legacy function for backward compatibility."""
-    detector = ColumnDetector()
+    detector = TwoColumnsLayoutDetectorDensityBased()
     return detector.detect_two_column_layout(layout)
 
 def enhanced_layout_peek(page: Dict[str, Any]) -> List[int]:
     """Legacy function for backward compatibility."""
-    analyzer = LayoutAnalyzer()
-    return analyzer.enhanced_layout_peek(page)
+    analyzer = TwoColumnsPageDetectorDensity()
+    return analyzer.detect(page)
