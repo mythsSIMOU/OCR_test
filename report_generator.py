@@ -54,7 +54,7 @@ class ReportGenerator:
                     })
 
                 # --- Test 2: Détection de ligne horizontale ---
-                if self.three_columns_detector.detect(page_data):
+                elif self.three_columns_detector.detect(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,
@@ -62,11 +62,18 @@ class ReportGenerator:
                     })
                 
                 # --- Test 3: Détection de layouts imbriqués ---
-                if self.nested_detector.detect(page_data):
+                elif self.nested_detector.detect(page_data):
                     self.all_detections.append({
                         'document_name': document_name,
                         'page_number': page_number,
                         'detection_type': 'Layouts Imbriqués'
+                    })
+                # --- Test 3: Détection de layouts imbriqués ---
+                elif self.two_columns_density_detector.detect_permissive(page_data):
+                    self.all_detections.append({
+                        'document_name': document_name,
+                        'page_number': page_number,
+                        'detection_type': 'Deux Colonnes soft'
                     })
 
         print("Analyse terminée.")

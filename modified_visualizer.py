@@ -134,7 +134,7 @@ class PageVisualizer:
         
         is_two_column = False
         if layout.label == 'Text' and layout.bbox_text:
-            is_two_column = self.column_detector.detect_two_column_layout(layout_data)
+            is_two_column = self.column_detector.detect_two_column_layout_15width(layout_data)
         
         return {
             'is_large_text_layout': is_large_text_layout,

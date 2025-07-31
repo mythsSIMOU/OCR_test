@@ -59,14 +59,13 @@ class Layout:
 
 class TwoColumnsLayoutDetectorDensityBased:
     """Class for detecting two-column layouts in document pages."""
-    
     def __init__(self, min_text_boxes: int = 8, min_width: int = 600, min_height: int = 500):
         # Note: min_text_boxes is now primarily handled inside the density function per rules.
         self.min_text_boxes_init = min_text_boxes
         self.min_width = min_width
         self.min_height = min_height
     
-    def detect_two_column_layout(self, layout: Dict[str, Any]) -> bool:
+    def detect_two_column_layout_15width(self, layout: Dict[str, Any]) -> bool:
         """
         Detect if a layout contains a two-column structure using only the density method.
         """
@@ -89,6 +88,36 @@ class TwoColumnsLayoutDetectorDensityBased:
             box for box in all_text_boxes 
             if (box.width / layout_width) >= 0.15
         ]
+        
+        # Le seuil du nombre de boîtes est maintenant appliqué aux boîtes sélectionnées.
+        if len(selected_text_boxes) < self.min_text_boxes_init:
+            return False
+        
+        x_midpoints = [box.midpoint_x for box in selected_text_boxes]
+        
+        # The only algorithm now being called is the density based one.
+        return self._is_two_column_by_density(x_midpoints, layout_obj.width)
+    
+    def detect_two_column_layout_all(self, layout: Dict[str, Any]) -> bool:
+        """
+        Detect if a layout contains a two-column structure using only the density method.
+        """
+        if 'bbox_text' not in layout or not layout['bbox_text']:
+            return False
+        
+        layout_obj = Layout(
+            bbox_layout=layout['bbox_layout'],
+            label=layout.get('label', ''),
+            bbox_text=layout.get('bbox_text'),
+            text=layout.get('text')
+        )
+
+        all_text_boxes = layout_obj.text_boxes
+        layout_width = layout_obj.width
+
+        if layout_width == 0: return False # Éviter la division par zéro
+        
+        selected_text_boxes = all_text_boxes
         
         # Le seuil du nombre de boîtes est maintenant appliqué aux boîtes sélectionnées.
         if len(selected_text_boxes) < self.min_text_boxes_init:
@@ -186,16 +215,47 @@ class TwoColumnsPageDetectorDensity:
                   layout.width > self.min_layout_width and
                   layout.height > self.min_layout_height):
                 
-                if self.column_detector.detect_two_column_layout(layout_data):
+                if self.column_detector.detect_two_column_layout_15width(layout_data):
                     layout_indices.append(i)
         
         return layout_indices
     
+    def detect_permissive(self, page: Dict[str, Any]) -> List[int]:
+        """
+        Enhanced function to detect layouts that might contain two-column structures.
+        """
+        layout_indices: List[int] = []
+        
+        for i, layout_data in enumerate(page['page']):
+            layout = Layout(
+                bbox_layout=layout_data['bbox_layout'],
+                label=layout_data.get('label', ''),
+                bbox_text=layout_data.get('bbox_text'),
+                text=layout_data.get('text')
+            )
+            
+            large_layout_condition = (
+                
+                layout.width > self.large_layout_width and 
+                layout.height > self.large_layout_height
+            )
+            
+            if large_layout_condition:
+                layout_indices.append(i)
+            elif (
+                  layout.bbox_text and 
+                  layout.width > self.min_layout_width and
+                  layout.height > self.min_layout_height):
+                
+                if self.column_detector.detect_two_column_layout_all(layout_data):
+                    layout_indices.append(i)
+        
+        return layout_indices   
 # Legacy functions for backward compatibility
 def detect_two_column_layout(layout: Dict[str, Any]) -> bool:
     """Legacy function for backward compatibility."""
     detector = TwoColumnsLayoutDetectorDensityBased()
-    return detector.detect_two_column_layout(layout)
+    return detector.detect_two_column_layout_15width(layout)
 
 def enhanced_layout_peek(page: Dict[str, Any]) -> List[int]:
     """Legacy function for backward compatibility."""
