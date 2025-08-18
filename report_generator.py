@@ -3,6 +3,8 @@
 import json
 import csv
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Importation de toutes les classes de détection nécessaires
 from column_detector import TwoColumnsPageDetectorDensity  # On utilise l'analyseur de haut niveau pour les colonnes
@@ -37,7 +39,7 @@ class ReportGenerator:
         
         # rglob("*.json") parcourt tous les sous-dossiers
         for json_file in sorted(self.base_dir.rglob("*.json")):
-            print(f"Analyse du fichier : {json_file.name}")
+            # print(f"Analyse du fichier : {json_file.name}")
             with open(json_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
@@ -75,9 +77,26 @@ class ReportGenerator:
                         'page_number': page_number,
                         'detection_type': 'Deux Colonnes soft'
                     })
+                else:
+                    # self.two_columns_density_detector.read_stats(page_data)
+                    pass
 
         print("Analyse terminée.")
+        print('Number of pages ' + str(self.two_columns_density_detector.number_of_pages))
+        print('Number of layouts ' + str(self.two_columns_density_detector.number_of_layouts))
+        print('Distributions ' + str(self.two_columns_density_detector.labels_distribution))
+        print('Samples ' + str(self.two_columns_density_detector.labels_text_sample_list))
         self.save_report()
+        
+        plt.figure(figsize=(6, 5))
+        data = np.array(TwoColumnsPageDetectorDensity.tables_width_height_pair)
+        plt.hist2d(data[:, 0], data[:, 1], bins=30, cmap='Blues')
+        plt.colorbar(label='Frequency')
+        plt.title("Scatter Plot of Width vs Height")
+        plt.xlabel("Width")
+        plt.ylabel("Height")
+        plt.grid(True)
+        plt.show()
 
     def save_report(self):
         """

@@ -176,6 +176,12 @@ class TwoColumnsLayoutDetectorDensityBased:
 
 class TwoColumnsPageDetectorDensity:
     """Class for analyzing page layouts and detecting enhanced layouts."""
+    number_of_pages = 0
+    number_of_layouts = 0
+    labels_distribution = {}
+    labels_list = []
+    tables_width_height_pair = []
+    labels_text_sample_list = {}
     
     def __init__(self, 
                  large_layout_width: int = 900, 
@@ -202,11 +208,7 @@ class TwoColumnsPageDetectorDensity:
                 text=layout_data.get('text')
             )
             
-            large_layout_condition = (
-                
-                layout.width > self.large_layout_width and 
-                layout.height > self.large_layout_height
-            )
+            large_layout_condition = False
             
             if large_layout_condition:
                 layout_indices.append(i)
@@ -219,6 +221,35 @@ class TwoColumnsPageDetectorDensity:
                     layout_indices.append(i)
         
         return layout_indices
+    
+    def read_stats(self, page: Dict[str, Any]) -> List[int]:
+        """
+        Read some statistics
+        """
+        TwoColumnsPageDetectorDensity.number_of_pages += 1
+
+        
+        for i, layout_data in enumerate(page['page']):
+            TwoColumnsPageDetectorDensity.number_of_layouts += 1
+            layout = Layout(
+                bbox_layout=layout_data['bbox_layout'],
+                label=layout_data.get('label', ''),
+                bbox_text=layout_data.get('bbox_text'),
+                text=layout_data.get('text')
+            )
+            TwoColumnsPageDetectorDensity.number_of_layouts += 1
+            if layout_data.get('label', '') not in TwoColumnsPageDetectorDensity.labels_list:
+                TwoColumnsPageDetectorDensity.labels_list.append(layout_data.get('label', ''))
+                TwoColumnsPageDetectorDensity.labels_distribution[layout_data.get('label', '')] = 1
+                TwoColumnsPageDetectorDensity.labels_text_sample_list[layout_data.get('label', '')] = layout_data.get('text', '')
+            else:
+                TwoColumnsPageDetectorDensity.labels_distribution[layout_data.get('label', '')] += 1
+                if (layout_data.get('label', '') == 'Picture'):
+                    TwoColumnsPageDetectorDensity.tables_width_height_pair.append([layout.width, layout.height])
+                    
+            
+        
+        return False
     
     def detect_permissive(self, page: Dict[str, Any]) -> List[int]:
         """
@@ -234,11 +265,7 @@ class TwoColumnsPageDetectorDensity:
                 text=layout_data.get('text')
             )
             
-            large_layout_condition = (
-                
-                layout.width > self.large_layout_width and 
-                layout.height > self.large_layout_height
-            )
+            large_layout_condition = False
             
             if large_layout_condition:
                 layout_indices.append(i)
