@@ -10,19 +10,18 @@ import numpy as np
 from column_detector import TwoColumnsPageDetectorDensity  # On utilise l'analyseur de haut niveau pour les colonnes
 from row_detector import ThreeColumnsMajorityDetector
 from nested_detector import NestedLayoutsDetector
+from table_detector import TableDetector
 
 class ReportGenerator:
     """
     Analyse les documents avec plusieurs détecteurs et génère un rapport CSV consolidé.
     """
-    def __init__(self, base_dir: str = "result_json", output_file: str = "detection_report.csv"):
+    def __init__(self, base_dir: str = "result_json", output_file: str = "report_tables.csv"):
         self.base_dir = Path(base_dir)
         self.output_file = Path(output_file)
         
         # Init all detectors
-        self.two_columns_density_detector = TwoColumnsPageDetectorDensity()
-        self.three_columns_detector = ThreeColumnsMajorityDetector()
-        self.nested_detector = NestedLayoutsDetector()
+        self.table_detector = TableDetector()
         
         # Liste pour stocker tous les résultats
         self.all_detections = []
@@ -47,39 +46,37 @@ class ReportGenerator:
                 page_number = page_data['index']
                 document_name = json_file.name
                 
-                # --- Test 1: Détection de deux colonnes ---
-                if self.two_columns_density_detector.detect(page_data):
-                    self.all_detections.append({
-                        'document_name': document_name,
-                        'page_number': page_number,
-                        'detection_type': 'Deux Colonnes'
-                    })
-
-                # --- Test 2: Détection de ligne horizontale ---
-                elif self.three_columns_detector.detect(page_data):
-                    self.all_detections.append({
-                        'document_name': document_name,
-                        'page_number': page_number,
-                        'detection_type': 'Ligne Horizontale (3+ layouts)'
-                    })
+                case_label_detector =  self.table_detector.detect_table_label(page_data)
                 
-                # --- Test 3: Détection de layouts imbriqués ---
-                elif self.nested_detector.detect(page_data):
-                    self.all_detections.append({
-                        'document_name': document_name,
-                        'page_number': page_number,
-                        'detection_type': 'Layouts Imbriqués'
-                    })
-                # --- Test 3: Détection de layouts imbriqués ---
-                elif self.two_columns_density_detector.detect_permissive(page_data):
-                    self.all_detections.append({
-                        'document_name': document_name,
-                        'page_number': page_number,
-                        'detection_type': 'Deux Colonnes soft'
-                    })
+                if (case_label_detector):
+                    if (case_label_detector['full_page']):
+                        self.all_detections.append({
+                            'document_name': document_name,
+                            'full_page': True,
+                            'page_number': page_number,
+                            'detection_type': 'detection label',
+                            'table_boxes': []
+                        })
+                    else:
+                        self.all_detections.append({
+                            'document_name': document_name,
+                            'full_page': False,
+                            'page_number': page_number,
+                            'detection_type': 'detection label',
+                            'table_boxes': case_label_detector['list']
+                        })
                 else:
-                    # self.two_columns_density_detector.read_stats(page_data)
-                    pass
+                    case_3_columns_detector = self.table_detector.detect_3_columns_case(page_data)
+                    if (case_3_columns_detector):
+                        self.all_detections.append({
+                            'document_name': document_name,
+                            'full_page': True,
+                            'page_number': page_number,
+                            'detection_type': '3 columns',
+                            'table_boxes': []
+                        })
+                                
+                    
 
     def save_report(self):
         """
@@ -92,7 +89,7 @@ class ReportGenerator:
         print(f"Sauvegarde du rapport dans '{self.output_file}'...")
         
         # Noms des colonnes pour le fichier CSV
-        fieldnames = ['document_name', 'page_number', 'detection_type']
+        fieldnames = ['document_name', 'page_number', 'full_page', 'detection_type', 'table_boxes']
         
         with open(self.output_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
