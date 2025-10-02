@@ -13,3 +13,9 @@ visualization_output66/
 horizontal_output/
 nested_output/
 horizontal_output_scanline/
+debug_kde_plots_1965/
+debug_kde_plots_2025/
+debug_kde_plots_legacy_1965/
+states/*
+aa_visualization_output/
+visualization_with_tables/

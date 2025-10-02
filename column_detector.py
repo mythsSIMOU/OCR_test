@@ -145,6 +145,40 @@ class ColumnDetector:
         except Exception:
             return False
 
+    def detect_two_column_layout_v2(self, layout: Dict[str, Any]) -> bool:
+        """
+        Detect if a layout contains a two-column structure using only the density method.
+        """
+        if 'bbox_text' not in layout or not layout['bbox_text']:
+            return False
+        
+        layout_obj = Layout(
+            bbox_layout=layout['bbox_layout'],
+            label=layout.get('label', ''),
+            bbox_text=layout.get('bbox_text'),
+            text=layout.get('text')
+        )
+        
+        all_text_boxes = layout_obj.text_boxes
+        layout_width = layout_obj.width
+
+        if layout_width == 0: return False # Éviter la division par zéro
+        
+        selected_text_boxes = [
+            box for box in all_text_boxes 
+            if (box.width / layout_width) >= 0.15
+        ]
+        
+        # Le seuil du nombre de boîtes est maintenant appliqué aux boîtes sélectionnées.
+        if len(selected_text_boxes) < self.min_text_boxes_init:
+            return False
+        
+        x_midpoints = [box.midpoint_x for box in selected_text_boxes]
+        
+        # The only algorithm now being called is the density based one.
+        return self._is_two_column_by_density_v2(x_midpoints, layout_obj.width)
+
+
 class LayoutAnalyzer:
     """Class for analyzing page layouts and detecting enhanced layouts."""
     
